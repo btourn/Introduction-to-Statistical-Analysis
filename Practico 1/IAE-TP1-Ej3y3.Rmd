@@ -1,0 +1,204 @@
+---
+title: "Introducción al Aprendizaje Estadístico - Practica 1"
+author: "Benjamin Tourn"
+date: "8/4/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Análisis Exploratorio de Datos
+
+### Ejercicio 3
+
+Carga de datos 'Hitters.csv' y llamado a las librerias correspondientes
+
+```{r datos, results='hide'}
+library(ISLR)
+library(ggplot2)
+library(tidyverse)
+datos <- ISLR::Hitters
+```
+
+
+&nbsp; 
+a) A continuación se grafica la variable respuesta *Salary* en función del predictor *Hits*:
+
+```{r grafica1}
+ggplot(data = datos) +
+    geom_point(mapping = aes(x = Hits, y = Salary)) + theme_bw()
+
+```
+
+La distribución de puntos sugiere una tendencia aproximadamene lineal ascendente, aunque se evidencia una gran dispersión de la nube de puntos. Siendo que la tendencia mencionada tiene pendiente positiva, esto sugiere la existencia de una relación entre el predictor *Hits* y la respuesta *Salary* donde a medida que aumenta el número de hits del jugador aumenta su salario, lo cual es razonable. 
+
+A su vez, existen algunos *outliers*, por ejemplo en la zona próxima al eje de ordenadas de la gráfica, donde para valores muy bajos de *Hits* existen valores elevados de *Salary*, lo cual es contrario a la hipótesis original. Estos datos pueden ser errores, o también algún caso particular donde un jugador percibe un salario muy alto a pesar de no tener hits en su haber (por ejemplo, algún jugador que es considerado una leyenda para un equipo, pero que debido a su edad no es productivo en el número de hits, sin embargo genera un impacto motivacional positivo en sus compañeros).
+
+Por último, existe en la zona inferior del gráfico una concentración de observaciones que se manifiestan también en contra de la hipótesis original de tendencia lineal ascendente, aunque no es lo suficientemente densa como para invalidarla.
+
+
+b) La siguiente es la gráfica de la variable respuesta *Salary* en función del predictor *Hits*, utilizando la variable *Division* para discriminar los datos:
+
+```{r grafica2}
+ggplot(data = datos) +
+    geom_point(mapping = aes(x = Hits, y = Salary, color = Division)) + theme_bw()
+
+```
+
+Al discriminar los datos utilizando la variable *Division* se puede afirmar que cada distribución tiene una tendencia aproximadamente lineal ascendente, aunque con pendiente diferente, siendo la pendiente para el caso de los datos correspondientes a la división "E" (puntos rojos) mayor a la pendiente de los datos de la división "W" (puntos azules). Esta observación radica en el hecho que los puntos azules se encuentran mayormente concentrados en la mitad inferior del diagrama, mientras que existen puntos rojos en la zona superior derecha del diagrama. 
+
+La tendencia para cada subconjunto de datos es más evidente que en el ítem a), dado que para cada uno de los subconjuntos la dispersión de los datos es menor que para el conjunto total.
+
+Estas tendencias sugieren que los jugadores pertenecientes a la división "E" perciben salarios mas altos que los jugadores de la división "W" para un mismo valor de hits.
+
+
+
+&nbsp; 
+c) En base a los gráficos anteriores, se percibe que el gráfico del ítem b) es más descriptivo que el del ítem a), basado en el hecho que el segundo permite visualizar tendencias por separado que son más evidentes (es decir, menos dispersas) que en el primer caso.
+
+
+
+&nbsp; 
+d) En este ítem se crea la variable *Hits2* que agrupa la variable *Hits* en cuatro categorías con aproximadamente la misma cantidad de observaciones, mediante el uso de la función `mutate()`:
+
+```{r Hits2}
+Hits <- datos$Hits
+datos <- datos %>% mutate(datos, Hits2 = cut(Hits, fivenum(Hits), include.lowest = TRUE))
+```
+
+Mediante la función `head()` visualizamos un vista parcial del DataFrame obtenido:
+
+```{r datos2}
+head(datos)
+```
+
+Podemos apreciar que se incorporó una nueva columna `Hits2`, la cual establece a cuál de los 4 niveles de la variable original *Hits* pertenece cada observación. 
+
+
+
+&nbsp; 
+
+e) Para realizar un análisis exploratorio se deben llevar a cabo dos estudios: uno numérico y uno gráfico. Los mismos serán denominados como "Resumen numérico" y "Resumen gráfico", respectivamente.
+
+### Resumen numérico
+Dado que la variable respuesta es cuantitativa, se pueden estudiar medidas de centro y      de variabilidad, tales como la media, mediana, cuartiles, mínimo, máximo, desvío            estándar. 
+
+Para obtener la media de los salarios a partir de los datos que incluyen la variable *Hit2*, y discriminando los datos mediante la variable *Division*, se obtiene:
+```{r medias}
+medias <- group_by(datos, Hits2, Division) %>% summarise(Media = mean(Salary, na.rm=T))
+print(medias, n=Inf)
+```
+
+De las misma manera se puede proceder par obtener los valores de mínimo, primer cuartil, mediana, tercer cuartil, y máximo, dados por la función `fivenum()`:
+```{r fivenum}
+cincoNum <- group_by(datos, Hits2, Division) %>% summarise(cincoNumeros = fivenum(Salary, na.rm=T))
+print(cincoNum, n=Inf)
+```
+
+
+### Resumen gráfico
+    
+A continuación se muestra la gráfica de la respuesta *Salary* en función de la nueva        variable *Hits2*, también discriminada con la variable *Division*:
+
+```{r grafica3}
+ggplot(data = datos) +
+    geom_point(mapping = aes(x = Hits2, y = Salary, color = Division)) + theme_bw()
+```
+
+La gráfica resulta aún más descriptiva que en los casos anteriores ya que se puede apreciar claramente cómo la distribución de los valores de *Salary* va ampliando su rango en la medida que la variable categórica *Hits2* incrementa. Para los dos primeros niveles de *Hits2*, i.e. (1,64] y (64,96], prácticamente no se distinguen diferencias entre los dos subconjuntos de datos, excluyendo del análisis los *outliers*. La diferencia entre ellos es notoria en el tercer y cuarto nivel, donde se puede apreciar que los salarios correspondientes a jugadores de la división "E" son más altos que los de la división "W" para los rangos mostrados de hits.
+
+
+Otra gráfica ilustrativa es la gráfica de tipo `boxplot` que se muestra a continuación:
+```{r boxplot}
+ggplot(datos, aes(x=Hits2, y=Salary, fill = Division)) + 
+    geom_boxplot() +
+    facet_wrap(~Division) + theme_bw()
+```
+
+En ella se aprecia claramente la tendencia ascendente de la variable *Salary* para cada una de los dos valores de *Division*, y para los cuatro niveles de la nueva variable *Hits2*. A su vez, quedan resumidas los valores dados en el Resumen Numérico referidos a los cinco números dados por la función `fivenum()`. 
+
+Las dos gráficas mostradas en este Resumen, sumadas a los valores numéricos mostrados en el resumen correspondiente, confirman las observaciones realizadas en los ítems previos.
+
+
+
+## 2. Vecinos más cercanos, errores en entrenamiento y en prueba
+
+### Ejercicio 3
+
+En primer lugar, se debe crear el DataFrame correspondiente a la tabla dada en el enunciado, de la siguiente manera:
+
+```{r df}
+X1 <- c(0, 0, 2, -1, 0, 0)
+X2 <- c(1, 1, 0, 0, 0, 3)
+X3 <- c(3, 2, 0, 1, 0, 0)
+Y  <- c('Poco', 'Mucho', 'Poco', 'Mucho', 'Poco', 'Poco')
+df <- data.frame(X1, X2, X3, Y)
+print(df)
+```
+
+Se desea predecir el valor de `Y` para el caso donde `X1=X2=X3=1`.
+
+En este ejercicio se utilizará el paquete `kknn` que contiene herramientas para realizar análisis de vecinos más cercanos
+
+```{r paquete}
+library(kknn)
+```
+
+
+&nbsp; 
+a) La distancia euclídea entre cada uno de los puntos dados en la tabla y el punto `X1=X2=X3=1` viene dada por la siguiente expresión: 
+$$d_i=\sqrt{(X_{i1}-X_{p1})^2 + (X_{i2}-X_{p2})^2 + (X_{i3}-X_{p3})^2}$$
+donde $d_i$ es la distancia entre el i-ésimo punto definido por las coordenadas $X_{i1},X_{i2},X_{i3}$ dadas en la i-ésima fila de la tabla, y el punto considerado dado por las coordenadas $X_{p1}=1,X_{p2}=1,X_{p3}=1$.
+
+En R se pueden obtener las distancias correspondientes mediante el siguiente código, el cual lleva a cabo el cálculo de forma vectorizada (no necesitando el uso de bucle `for`):
+
+```{r distancias}
+coordPunto1 <- c(1, 1, 1)
+distancias <- sqrt(rowSums((df[,1:3] - coordPunto1)^2))
+print(distancias)
+```
+
+Se concluye que la observación 6 se encuentra más lejos del punto dado, mientras que la observación 2 es la más cercana a dicho punto.
+
+
+&nbsp; 
+b) Con $K=1$ se considera sólamente un solo vecino más cercano, el cual es el punto 2 de coordenadas (0, 1, 2). En este caso, la predicción para el punto considerado sería `Y=Mucho` dado que se cuenta con un solo punto para realizar la estimación cuyo valor es `Y=Mucho`.
+
+
+&nbsp; 
+c) Con $K=3$ se consideran tres vecinos más cercanos, a saber: los puntos 2, 3, y 5 de la tabla (en este caso es sencillo determinar los puntos más cercanos a simple vista, sino sería necesario usar una función de R), cuyas respuestas son `Mucho`, `Mucho`, y `Poco`, respectivamente. Dado que de las tres respuestas dos adoptan el valor `Mucho`, la proporción es 2/3 - 1/3, con lo cual, $P(y=1|X=(1,1,1))=0.\hat{6}$. Entonces, la predicción de la respuesta para el punto considerado es también `Y=Mucho`.
+
+
+&nbsp; 
+d) Para este caso, se debe realizar un bucle for (....) 
+
+```{r bucle K1,K3}
+filasMenos1 <- nrow(df) - 1
+prediccion <- data.frame(matrix(ncol = 2, nrow = filasMenos1))
+x <- c("Predicción para K=1", "Predicción para K=3")
+colnames(prediccion) <- x
+
+for (i in 1:filasMenos1) {
+    coords_i <- df[1,1:3] %>% as.numeric()
+    sub_df <- df[-i,]
+    distancias_i <- sqrt(rowSums((sub_df[,1:3] - coords_i)^2))
+    indiceK1_i <- which.min(distancias_i)[1]
+    prediccion[i,1] <- sub_df[indiceK1_i,4]
+    indiceK3_i <- order(distancias_i)[1:3]
+    subset <- sub_df[indiceK3_i,4]
+    prom <- sum(subset == "Mucho")/3
+    pred_K3 <- if (prom >= 0.5){
+        'Mucho'
+    } else {
+        'Poco'
+    }
+    prediccion[i,2] <- pred_K3
+}
+print(prediccion)
+```
+
+
